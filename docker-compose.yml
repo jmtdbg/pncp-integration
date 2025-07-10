@@ -23,7 +23,7 @@ services:
         image: nginx:alpine
         restart: unless-stopped
         ports:
-            - "8989:80"
+            - "7979:80"
         volumes:
             - ./:/var/www
             - ./docker/nginx/:/etc/nginx/conf.d/
@@ -56,7 +56,7 @@ services:
       volumes:
           - ./.docker/postgres:/data/postgres
       ports:
-          - '5439:5432'
+          - '5429:5432'
       restart: unless-stopped
       networks:
           - laravel
@@ -69,7 +69,7 @@ services:
             PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}   # Você pode alterar
             PGADMIN_DEFAULT_PASSWORD: ${DB_PASSWORD} # Você pode alterar
         ports:
-            - "5059:80"  # Acesse em http://localhost:5050
+            - "5049:80"  # Acesse em http://localhost:5050
         depends_on:
             - postgres
         networks:

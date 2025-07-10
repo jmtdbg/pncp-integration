@@ -1,0 +1,115 @@
+version: "3.7"
+
+services:
+    # image project
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        environment:
+            - TZ='America/Boa_Vista'
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www
+        depends_on:
+            - redis
+        user: "johnny"
+        networks:
+            - laravel
+
+    # nginx
+    nginx:
+        image: nginx:alpine
+        restart: unless-stopped
+        ports:
+            - "8989:80"
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/:/etc/nginx/conf.d/
+        networks:
+            - laravel
+
+    # db mysql
+    # db:
+    #     image: mysql:5.7.22
+    #     restart: unless-stopped
+    #     environment:
+    #         MYSQL_DATABASE: ${DB_DATABASE:-laravel}
+    #         MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+    #         MYSQL_PASSWORD: ${DB_PASSWORD:-userpass}
+    #         MYSQL_USER: ${DB_USERNAME:-username}
+    #     volumes:
+    #         - ./.docker/mysql/dbdata:/var/lib/mysql
+    #     ports:
+    #         - "3388:3306"
+    #     networks:
+    #         - laravel
+
+    postgres:
+      image: postgres:16.1
+      environment:
+          POSTGRES_USER: ${DB_USERNAME}
+          POSTGRES_PASSWORD: ${DB_PASSWORD}
+          POSTGRES_DB: ${DB_DATABASE}
+          PGDATA: /data/postgres
+      volumes:
+          - ./.docker/postgres:/data/postgres
+      ports:
+          - '5439:5432'
+      restart: unless-stopped
+      networks:
+          - laravel
+
+    # pgAdmin
+    pgadmin:
+        image: dpage/pgadmin4
+        restart: unless-stopped
+        environment:
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}   # Você pode alterar
+            PGADMIN_DEFAULT_PASSWORD: ${DB_PASSWORD} # Você pode alterar
+        ports:
+            - "5059:80"  # Acesse em http://localhost:5050
+        depends_on:
+            - postgres
+        networks:
+            - laravel
+
+    # redis
+    redis:
+        image: redis:latest
+        networks:
+            - laravel
+    #queue	Executar os jobs enfileirados via Redis
+    queue:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: php artisan queue:work
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        depends_on:
+            - redis
+        restart: unless-stopped
+        networks:
+            - laravel
+
+    #scheduler	Rodar comandos agendados do Laravel (cron)
+    scheduler:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: php artisan schedule:work
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        depends_on:
+            - app
+        restart: unless-stopped
+        networks:
+            - laravel
+
+networks:
+    laravel:
+        driver: bridge
